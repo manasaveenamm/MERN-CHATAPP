@@ -1,9 +1,9 @@
-name: Deploy MERN App to EC2
+name: Deploy Chatapp to EC2
 
 on:
   push:
     branches:
-      - main  # or 'master' depending on your default branch name
+      - main
 
 jobs:
   deploy:
@@ -13,14 +13,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Deploy to AWS EC2
+      - name: Deploy Chatapp to AWS EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/ubuntu/MERN_PROJECTS/Chatapp/fullstack-chat-app
+            cd /home/ubuntu/chatapp
             git pull origin main
+
+            cd backend
+            npm install
+
+            cd ../frontend
+            npm install
             npm run build
-            pm2 restart mern-chat-app
+
+            pm2 restart chatapp-backend || pm2 start ../backend/src/index.js --name chatapp-backend
+            pm2 save
