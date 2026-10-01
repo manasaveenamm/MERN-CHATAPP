@@ -13,6 +13,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # ADD THIS STEP HERE
+      - name: Test EC2 SSH connectivity
+        run: |
+          nc -vz -w 10 ${{ secrets.EC2_HOST }} 22
+
+      # EXISTING SSH DEPLOYMENT STEP
       - name: Deploy Chatapp to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -21,10 +27,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ubuntu/chatapp
-
             git pull origin main
-
             docker compose down
             docker compose up -d --build
-
             docker image prune -f
