@@ -13,18 +13,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # ADD THIS STEP HERE
+      # Step 1: Test network connectivity
       - name: Test EC2 SSH connectivity
         run: |
           nc -vz -w 10 ${{ secrets.EC2_HOST }} 22
 
-      # EXISTING SSH DEPLOYMENT STEP
+      # Step 2: Deploy to EC2 using SSH
       - name: Deploy Chatapp to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
+          username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 10m
           script: |
             cd /home/ubuntu/chatapp
             git pull origin main
