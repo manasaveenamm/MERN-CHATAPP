@@ -1,35 +1,60 @@
-name: Deploy Chatapp to EC2
+name: CI/CD Pipeline - MERN Chat App
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  # --- CONTINUOUS INTEGRATION (CI) ---
+  build-and-test:
+    name: Continuous Integration (CI)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 1: Test network connectivity
-      - name: Test EC2 SSH connectivity
-        run: |
-          nc -vz -w 10 ${{ secrets.EC2_HOST }} 22
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-      # Step 2: Deploy to EC2 using SSH
-      - name: Deploy Chatapp to EC2
+      - name: Install & Validate Backend
+        run: |
+          cd backend
+          npm ci
+          # npm test  # Uncomment if unit tests are written
+
+      - name: Install & Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  # --- CONTINUOUS DEPLOYMENT (CD) ---
+  deploy-to-ec2:
+    name: Continuous Deployment (CD)
+    needs: build-and-test # Only deploy if CI step passes
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to AWS EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
+          username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          timeout: 30s
-          command_timeout: 10m
           script: |
-            cd /home/ubuntu/chatapp
+            cd /home/ubuntu/MERN_PROJECTS/Chatapp/fullstack-chat-app
             git pull origin main
             docker compose down
             docker compose up -d --build
